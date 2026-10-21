@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Найдите проблему в тест-кейсах</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --accent:#7C6FF5; --accent-hover:#6658E0; --accent-light:#F1EEFE; --accent-light-border:#DCD5FC;
+    --ink:#1F2430; --ink-soft:#4B5160; --gray:#6B7280; --border:#E6E7EC;
+    --good:#2F9E5C; --good-bg:#EAF8F0; --good-border:#BEE9D0;
+    --bad-bg:#FDEEEE; --bad-border:#F5C9C7; --bad-text:#C13A34;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#fff; color:var(--ink); line-height:1.5; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:800px; margin:0 auto; padding:36px 24px 60px;}
+  .tag-row{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+  .tag{font-size:12.5px; font-weight:600; padding:5px 12px; border-radius:999px; background:var(--accent-light); color:var(--accent-hover); border:1px solid var(--accent-light-border);}
+  .tag.muted{background:#F5F5F7; color:var(--gray); border-color:#E6E7EC;}
+  h1{font-size:26px; font-weight:800; margin:0 0 10px; letter-spacing:-0.01em;}
+  .lead{color:var(--ink-soft); font-size:15px; margin:0 0 26px; max-width:680px;}
+  .doc-card{border:1px solid var(--border); border-radius:14px; box-shadow:0 1px 2px rgba(20,20,43,0.04), 0 8px 24px rgba(20,20,43,0.05); overflow:hidden; background:#fff;}
+  .doc-header{background:#FAFAFC; border-bottom:1px solid var(--border); padding:14px 22px; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--gray); display:flex; justify-content:space-between;}
+  .doc-body{padding:22px;}
+  .reqs{background:var(--accent-light); border:1px solid var(--accent-light-border); border-radius:10px; padding:14px 16px; margin-bottom:22px;}
+  .reqs-title{font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--accent-hover); margin-bottom:8px;}
+  .reqs-row{display:flex; gap:12px; font-size:13.5px; margin-bottom:5px;}
+  .reqs-row .id{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--gray); flex-shrink:0; width:70px; padding-top:1px;}
+  .doc-title{font-size:14px; font-weight:700; color:var(--ink); margin:0 0 14px;}
+  .tc{display:flex; gap:14px; padding:14px 12px; border-radius:10px; border:1.5px solid transparent; cursor:pointer; transition:border-color .15s ease, background .15s ease; margin-bottom:4px;}
+  .tc:hover:not(.locked){border-color:var(--accent-light-border); background:var(--accent-light);}
+  .tc-id{font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--gray); flex-shrink:0; width:50px; padding-top:2px;}
+  .tc-main{flex:1; min-width:0;}
+  .tc-name{font-size:14.5px; font-weight:600; margin-bottom:2px;}
+  .tc-req{font-size:12px; color:var(--gray); margin-bottom:6px;}
+  .tc-line{font-size:13.5px; color:var(--ink-soft);}
+  .tc-line b{color:var(--ink); font-weight:600;}
+  .tc.correct{border-color:var(--good-border); background:var(--good-bg);}
+  .tc.correct .tc-id{color:var(--good);}
+  .tc.wrong-flash{border-color:var(--bad-border); background:var(--bad-bg);}
+  .inline-hint{font-size:13px; color:var(--bad-text); margin-top:8px; display:none;}
+  .tc.wrong-flash .inline-hint{display:block;}
+  .toolbar{display:flex; justify-content:space-between; align-items:center; margin-top:18px;}
+  .attempts{font-size:13px; color:var(--gray);}
+  .btn{background:none; border:1.5px solid var(--accent-light-border); color:var(--accent-hover); font-family:inherit; font-weight:600; font-size:13.5px; padding:9px 16px; border-radius:8px; cursor:pointer; transition:background .15s ease;}
+  .btn:hover{background:var(--accent-light);}
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .btn.primary:hover{background:var(--accent-hover);}
+  .reveal{display:none; margin-top:24px; animation:fadein .3s ease;}
+  @keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+  .reveal-card{border:1px solid var(--good-border); background:var(--good-bg); border-radius:14px; padding:22px 24px;}
+  .reveal-label{font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--good); margin-bottom:10px;}
+  .reveal-text{font-size:14.5px; color:var(--ink); margin:0 0 16px;}
+  .fix-box{background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px 16px; font-size:14px; margin-bottom:10px;}
+  .fix-box .label{font-size:12px; font-weight:700; color:var(--gray); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:6px;}
+  .fix-box.was{border-left:3px solid var(--bad-text);}
+  .fix-box.now{border-left:3px solid var(--good);}
+  .lesson-ref{font-size:13px; color:var(--ink-soft); margin-top:14px;}
+  .footer-btn{margin-top:22px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag-row">
+    <span class="tag">SA-I-009 · Тестирование и приёмка</span>
+    <span class="tag muted">Карточка 9 из 10</span>
+  </div>
+  <h1>Найдите проблему в тест-кейсах</h1>
+  <p class="lead">
+    Ниже — требования к оплате заказа и пять тест-кейсов, которые подготовил
+    тестировщик. Покрытие выглядит добротным: есть успешный сценарий, граничные
+    значения и негативные проверки. Но у одного тест-кейса ожидаемый результат
+    расходится с требованием: тест пройдёт, хотя система сработает неправильно.
+    Сверьте тест-кейсы с требованиями и кликните на тот, где что-то не так.
+  </p>
+
+  <div class="doc-card">
+    <div class="doc-header">
+      <span>TestPlan_Payment_v1.1.xlsx</span>
+      <span>Трассировка: требования → тест-кейсы</span>
+    </div>
+    <div class="doc-body">
+
+      <div class="reqs">
+        <div class="reqs-title">Требования к оплате заказа</div>
+        <div class="reqs-row"><span class="id">REQ-051</span><span>Система должна принимать оплату банковской картой и после успешной оплаты переводить заказ в статус «Оплачен».</span></div>
+        <div class="reqs-row"><span class="id">REQ-052</span><span>При отклонении оплаты платёжным шлюзом система не оформляет заказ, снимает резерв товара и предлагает клиенту повторить оплату или выбрать другой способ.</span></div>
+        <div class="reqs-row"><span class="id">REQ-053</span><span>Минимальная сумма заказа — 500 ₽. Заказ меньшей суммы оформить нельзя.</span></div>
+        <div class="reqs-row"><span class="id">REQ-054</span><span>Повторное нажатие «Оплатить» не должно приводить к созданию второго заказа или повторному списанию.</span></div>
+      </div>
+
+      <p class="doc-title">Тест-кейсы</p>
+
+      <div class="tc" data-correct="false" onclick="handleClick(this)">
+        <span class="tc-id">TC-01</span>
+        <div class="tc-main">
+          <div class="tc-name">Успешная оплата картой</div>
+          <div class="tc-req">Покрывает: REQ-051</div>
+          <div class="tc-line"><b>Шаги:</b> оформить заказ на 1 200 ₽, оплатить действующей картой.</div>
+          <div class="tc-line"><b>Ожидаемый результат:</b> оплата прошла, заказ в статусе «Оплачен».</div>
+          <div class="inline-hint">Ожидаемый результат совпадает с REQ-051. Проблема не здесь.</div>
+        </div>
+      </div>
+
+      <div class="tc" data-correct="false" onclick="handleClick(this)">
+        <span class="tc-id">TC-02</span>
+        <div class="tc-main">
+          <div class="tc-name">Граничное значение суммы заказа</div>
+          <div class="tc-req">Покрывает: REQ-053</div>
+          <div class="tc-line"><b>Шаги:</b> оформить заказ на 499,99 ₽.</div>
+          <div class="tc-line"><b>Ожидаемый результат:</b> заказ не оформляется, показано сообщение о минимальной сумме 500 ₽.</div>
+          <div class="inline-hint">Граница проверена с правильной стороны, результат совпадает с REQ-053. Проблема не здесь.</div>
+        </div>
+      </div>
+
+      <div class="tc" data-correct="true" onclick="handleClick(this)">
+        <span class="tc-id">TC-03</span>
+        <div class="tc-main">
+          <div class="tc-name">Оплата отклонена банком</div>
+          <div class="tc-req">Покрывает: REQ-052</div>
+          <div class="tc-line"><b>Шаги:</b> оформить заказ на 1 200 ₽, оплатить картой с недостаточным балансом.</div>
+          <div class="tc-line"><b>Ожидаемый результат:</b> заказ создан в статусе «Ожидает оплаты», резерв товара сохранён, клиенту предложено повторить оплату.</div>
+        </div>
+      </div>
+
+      <div class="tc" data-correct="false" onclick="handleClick(this)">
+        <span class="tc-id">TC-04</span>
+        <div class="tc-main">
+          <div class="tc-name">Двойной клик по кнопке «Оплатить»</div>
+          <div class="tc-req">Покрывает: REQ-054</div>
+          <div class="tc-line"><b>Шаги:</b> дважды нажать «Оплатить» с интервалом около 0,3 с при медленном ответе шлюза.</div>
+          <div class="tc-line"><b>Ожидаемый результат:</b> создан один заказ, выполнено одно списание, вторая попытка проигнорирована.</div>
+          <div class="inline-hint">Условие сформулировано технически сложно, но ожидаемый результат точно соответствует REQ-054. Проблема не здесь.</div>
+        </div>
+      </div>
+
+      <div class="tc" data-correct="false" onclick="handleClick(this)">
+        <span class="tc-id">TC-05</span>
+        <div class="tc-main">
+          <div class="tc-name">Товар закончился во время оформления</div>
+          <div class="tc-req">Покрывает: REQ-044 (раздел 3.2.4)</div>
+          <div class="tc-line"><b>Шаги:</b> в момент оплаты уменьшить остаток товара в WMS до нуля.</div>
+          <div class="tc-line"><b>Ожидаемый результат:</b> клиент уведомлён, ему предложено оформить заказ без этого товара.</div>
+          <div class="inline-hint">Тест ссылается на требование из другого раздела, но ожидаемый результат с ним совпадает. Проблема не здесь.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <span class="attempts" id="attempts-label">Попыток: 0</span>
+    <button class="btn" onclick="giveUp()">Показать разбор</button>
+  </div>
+
+  <div class="reveal" id="reveal">
+    <div class="reveal-card">
+      <div class="reveal-label">✓ Проблема найдена — TC-03</div>
+      <p class="reveal-text">
+        REQ-052 говорит, что при отказе оплаты заказ не оформляется, а резерв товара
+        снимается. В тест-кейсе ожидается обратное: заказ создан в статусе «Ожидает
+        оплаты», резерв сохранён. Если система реализована по требованию, этот тест
+        упадёт, а если подогнана под тест, то на складе начнут копиться заблокированные
+        остатки (та же проблема, что в карточке про схему процесса оплаты). Тест-кейс
+        выглядит убедительно: шаги описаны подробно и результат звучит правдоподобно,
+        поэтому расхождение легко пропустить, если не сверять результат с текстом
+        требования слово в слово.
+      </p>
+      <div class="fix-box was">
+        <div class="label">Было</div>
+        Ожидаемый результат: заказ создан в статусе «Ожидает оплаты», резерв товара сохранён.
+      </div>
+      <div class="fix-box now">
+        <div class="label">Как поправить</div>
+        Ожидаемый результат: заказ не оформлен, резерв товара снят, клиенту предложено
+        повторить оплату или выбрать другой способ. Если бизнес на самом деле хочет
+        сохранять неоплаченный заказ, менять надо не тест, а требование REQ-052, и
+        согласовывать это изменение с заказчиком.
+      </div>
+      <p class="lesson-ref">
+        Разбирается в модуле SA-I-009 (тестирование и приёмка) и в SA-I-003, урок 11
+        (трассировка требований на тестовые сценарии): трассировка работает, только
+        если ожидаемый результат тест-кейса сверен с текстом требования, а не просто
+        привязан к нему по номеру. Остальные четыре тест-кейса выглядят не проще, но
+        с требованиями согласуются.
+      </p>
+      <div class="footer-btn">
+        <button class="btn primary" onclick="location.reload()">Попробовать ещё раз</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let attempts = 0;
+let solved = false;
+
+function handleClick(el){
+  if(solved) return;
+  attempts++;
+  document.getElementById('attempts-label').textContent = `Попыток: ${attempts}`;
+  document.querySelectorAll('.tc').forEach(b => b.classList.remove('wrong-flash'));
+
+  if(el.dataset.correct === 'true'){
+    solved = true;
+    el.classList.add('correct');
+    document.querySelectorAll('.tc').forEach(b => { b.style.cursor='default'; b.classList.add('locked'); });
+    showReveal();
+  } else {
+    el.classList.add('wrong-flash');
+  }
+}
+
+function showReveal(){
+  const r = document.getElementById('reveal');
+  r.style.display = 'block';
+  r.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function giveUp(){
+  if(solved) return;
+  solved = true;
+  document.querySelectorAll('.tc').forEach(b => {
+    b.classList.remove('wrong-flash');
+    if(b.dataset.correct === 'true') b.classList.add('correct');
+    b.classList.add('locked');
+  });
+  showReveal();
+}
+</script>
+</body>
+</html>
